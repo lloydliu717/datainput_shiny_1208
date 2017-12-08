@@ -6,6 +6,7 @@ library(leaflet)
 library(plotly)
 
 library(dplyr)
+#devtools::install_github("rstudio/pool")
 library(pool)
 
 library(googlesheets)

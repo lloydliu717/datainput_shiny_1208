@@ -40,7 +40,7 @@ ui <- fluidPage(
           )
       )
     ),
-    
+
     tabPanel(#upload tab
       "Upload Local File",
       sidebarLayout(
@@ -51,16 +51,16 @@ ui <- fluidPage(
                     accept = c("text/csv",
                                "text/comma-separated-values,text/plain",
                                ".csv")),
-          
+
           tags$hr(),
           actionButton(inputId = "no2", label = "Plot!")
           ),
         mainPanel(
-          p("Another simple approach is to use the shiny file upload functionally 
+          p("Another simple approach is to use the shiny file upload functionally
             allowing the end user of an application to upload a CSV or other data file.
-            In this model, the end user can directly upload a file to the application 
-            which can be analyzed. This is usually best for small data sets. 
-            Uploads of this type are always done via secure HTTPS. 
+            In this model, the end user can directly upload a file to the application
+            which can be analyzed. This is usually best for small data sets.
+            Uploads of this type are always done via secure HTTPS.
             Currently limit uploads of this type to 32MB."),
           hr(),
           tableOutput("table1"),
@@ -71,7 +71,7 @@ ui <- fluidPage(
       )
     ),#end upload tab
     
-    tabPanel(#fetching from remote 
+    tabPanel(#fetching from remote
       "from SQL db",
       sidebarLayout(
         sidebarPanel(
@@ -79,9 +79,9 @@ ui <- fluidPage(
           numericInput("nrows", "How many cities to show?", 10)
         ),
         mainPanel(
-          p("The most complex approach would be fetching the data 
-            from a remote database or other data source. 
-            Shiny applications can be written to dynamically pull data 
+          p("The most complex approach would be fetching the data
+            from a remote database or other data source.
+            Shiny applications can be written to dynamically pull data
             from a SQL database or other API. "),
           hr(),
           tableOutput("tbl"),
@@ -172,45 +172,46 @@ server <- function(input, output) {
     }
   })
   
-  pool <- dbPool(
-    drv = RMySQL::MySQL(),
-    dbname = "shinydemo",
-    host = "shiny-demo.csa7qlmguqrf.us-east-1.rds.amazonaws.com",
-    username = "guest",
-    password = "guest"
-  )
-  output$tbl <- renderTable({
-    pool %>% tbl("City") %>%
-      filter(ID == input$ID)
-  })
+  # pool <- dbPool(
+  #   drv = RMySQL::MySQL(),
+  #   dbname = "shinydemo",
+  #   host = "shiny-demo.csa7qlmguqrf.us-east-1.rds.amazonaws.com",
+  #   username = "guest",
+  #   password = "guest"
+  # )
+  # output$tbl <- renderTable({
+  #   pool %>% tbl("City") %>%
+  #     filter(ID == input$ID)
+  # })
+  # 
+  # output$popPlot <- renderPlot({
+  #   df <- pool %>% tbl("City") %>%
+  #     head(as.integer(input$nrows)[1]) %>% collect()
+  #   pop <- df$Population
+  #   names(pop) <- df$Name
+  #   barplot(pop)
+  # })
+  # 
+  # output$sheetlist <- renderTable({
+  #   mylist[,c(1,2)]
+  # })
   
-  output$popPlot <- renderPlot({
-    df <- pool %>% tbl("City") %>%
-      head(as.integer(input$nrows)[1]) %>% collect()
-    pop <- df$Population
-    names(pop) <- df$Name
-    barplot(pop)
-  })
-  
-  output$sheetlist <- renderTable({
-    mylist[,c(1,2)]
-  })
-  
-  key = mylist$sheet_key[mylist$sheet_title == input$select1]
-  oursheet = gs_key(key)
-  df = gs_read(oursheet)
-  
-  
+  # key = mylist$sheet_key[mylist$sheet_title == input$select1]
+  # oursheet = gs_key(key)
+  # df = gs_read(oursheet)
+
+
   v3 <- reactiveValues(data = NULL)
   observeEvent(input$no3, {
     key <- mylist$sheet_key[mylist$sheet_title == input$select1]
     v3$data <- gs_key(key)
   })
+  
   output$sheet_info <- renderPrint({
     if(is.null(v3$data))return()
     print(v3$data)
   })
-  
+
   output$googlesheettable <- renderTable({
     if(is.null(v3$data))return()
     gs_read(v3$data)

@@ -3,18 +3,27 @@
 library(shiny)
 library(readr)
 library(leaflet)
+library(htmltools)
 library(plotly)
 
 library(dplyr)
-#devtools::install_github("rstudio/pool")
-library(pool)
+library(DBI)
+
 
 library(googlesheets)
 pittbusiness = read.csv("pitt.csv")
 pal1 <- colorNumeric(palette = "Blues",domain = pittbusiness$stars)
 
-mylist = gs_ls()
+mydb = dbConnect(
+  drv = RMySQL::MySQL(),
+  dbname = "yelp_db",
+  host = '45.63.90.29',
+  username = "mssp",
+  password = "mssp2017"
+)
+tablelist = dbListTables(mydb)
 
+(mylist = gs_ls())
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -75,8 +84,9 @@ ui <- fluidPage(
       "from SQL db",
       sidebarLayout(
         sidebarPanel(
-          textInput("ID", "Enter your ID:", "5"),
-          numericInput("nrows", "How many cities to show?", 10)
+          tableOutput("tablelist"),
+          hr(),
+          selectInput("choosetbl",label = "show tbl's col", choices = tablelist)
         ),
         mainPanel(
           p("The most complex approach would be fetching the data
@@ -86,7 +96,10 @@ ui <- fluidPage(
           hr(),
           tableOutput("tbl"),
           hr(),
-          plotOutput("popPlot")
+          tableOutput("headoftbl"),
+          hr(),
+          p("businesses in Cleveland"),
+          leafletOutput("Cleveland")
         )
       )
     ),
@@ -110,7 +123,7 @@ ui <- fluidPage(
 )
 
 # Define server logic required to draw a histogram
-server <- function(input, output) {
+server <- function(input, output, session) {
   v1 <- reactiveValues(data = NULL)
   observeEvent(input$no1, {
     v1$data <- pittbusiness
@@ -125,7 +138,7 @@ server <- function(input, output) {
         ~longitude,~latitude,
         radius = 1,
         color = ~pal1(stars),
-        fillOpacity = 0.5) %>%
+        fillOpacity = 0.5, label = ~htmlEscape(name)) %>%
       addLegend("bottomright", pal = pal1, values = ~stars,
                 title = "Stars",
                 labFormat = labelFormat(prefix = ""),
@@ -172,43 +185,42 @@ server <- function(input, output) {
     }
   })
   
-  # pool <- dbPool(
-  #   drv = RMySQL::MySQL(),
-  #   dbname = "shinydemo",
-  #   host = "shiny-demo.csa7qlmguqrf.us-east-1.rds.amazonaws.com",
-  #   username = "guest",
-  #   password = "guest"
-  # )
-  # output$tbl <- renderTable({
-  #   pool %>% tbl("City") %>%
-  #     filter(ID == input$ID)
-  # })
-  # 
-  # output$popPlot <- renderPlot({
-  #   df <- pool %>% tbl("City") %>%
-  #     head(as.integer(input$nrows)[1]) %>% collect()
-  #   pop <- df$Population
-  #   names(pop) <- df$Name
-  #   barplot(pop)
-  # })
-  # 
-  # output$sheetlist <- renderTable({
-  #   mylist[,c(1,2)]
-  # })
-  
-  # key = mylist$sheet_key[mylist$sheet_title == input$select1]
-  # oursheet = gs_key(key)
-  # df = gs_read(oursheet)
-
-
-  v3 <- reactiveValues(data = NULL)
-  observeEvent(input$no3, {
-    key <- mylist$sheet_key[mylist$sheet_title == input$select1]
-    v3$data <- gs_key(key)
+  output$tablelist <- renderTable({
+    dbListTables(mydb)
+  })
+  output$tbl <- renderTable({
+    dbListFields(mydb, input$choosetbl)
+  })
+  output$headoftbl <- renderTable({
+    mydb %>% dbSendQuery(paste0("select * from ", input$choosetbl," limit 5")) %>% fetch(n = -1)
   })
   
-  output$sheet_info <- renderPrint({
-    if(is.null(v3$data))return()
+  output$Cleveland <- renderLeaflet({
+    a = mydb %>% dbGetQuery("select * from business;") %>% filter(state == "OH")
+    long = mean(a$longitude)
+    lat = mean(a$latitude)
+    
+    leaflet(a) %>% addTiles() %>% 
+      setView( lng = long, lat = lat, zoom = 10 ) %>% 
+      addTiles() %>% 
+      addCircleMarkers(
+        ~longitude,~latitude,
+        radius = 1,
+        fillOpacity = 0.5, label = ~htmlEscape(name))
+  })
+
+   output$sheetlist <- renderTable({
+     mylist[,c(1,2)]
+   })
+  
+   v3 <- reactiveValues(data = NULL)
+   observeEvent(input$no3, {
+     key <- mylist$sheet_key[mylist$sheet_title == input$select1]
+     v3$data <- gs_key(key)
+   })
+#   
+   output$sheet_info <- renderPrint({
+     if(is.null(v3$data))return()
     print(v3$data)
   })
 

@@ -1,0 +1,13 @@
+name: Demo1008
+title: Demo1008
+username:
+account: lloydliu
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 246150
+bundleId: 1127251
+url: https://lloydliu.shinyapps.io/Demo1008/
+when: 1512962849.33704
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: example_data.rdata|movie.csv|movie.rdata
